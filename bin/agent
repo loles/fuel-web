@@ -167,7 +167,10 @@ class NodeAgent
       },
       :disks => [],
       :memory => (_dmi_memory or _ohai_memory),
-    }
+    }    
+
+    default_interface = @os["network"]["default_interface"]
+    default_gateway = @os["network"]["default_gateway"]
 
     begin
       (@os[:network][:interfaces] or {} rescue {}).each do |int, intinfo|
@@ -178,6 +181,9 @@ class NodeAgent
         # Exception: eth0.0(example) have "type" => "eth" but it is not physical interface
         next if int =~ /\d+\.\d+$/
         int_meta = {:name => int}
+        if int == default_interface
+          int_meta[:gateway] = default_gateway
+        end
         int_meta[:state] = intinfo[:state]
         (intinfo[:addresses] or {} rescue {}).each do |addr, addrinfo|
           if (addrinfo[:family] rescue nil) =~ /lladdr/
