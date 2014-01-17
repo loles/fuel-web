@@ -393,7 +393,7 @@ class NodeAgent
   end
 
   def _master_ip (master_int)
-    return Facter.value("ipaddress_#{master_int}")
+    return nil
   end
 
   def _master_mac (master_int)
@@ -403,16 +403,18 @@ class NodeAgent
   def _data
     Facter.loadfacts
     routing = `ip route get #{@api_ip}`
-    master_int = $1 if routing =~ /dev\s+(.*?)\s+/
+    master_int, master_ip = $1,$2 if routing =~ /dev\s+(.*?)\s+src\s+(\d+\.\d+\.\d+\.\d+)\s+/
     res = {
       :mac => (@os[:macaddress] rescue nil),
       :ip  => (@os[:ipaddress] rescue nil),
       :os_platform => (@os[:platform] rescue nil)
     }
+    @logger.error(master_int)
+    @logger.error(master_ip)
     begin
       detailed_data = _detailed
       res.merge!({
-        :ip  => ((_master_ip master_int or @os[:ipaddress]) rescue nil),
+        :ip  => ((master_ip or @os[:ipaddress]) rescue nil),
         :mac  => ((_master_mac master_int or @os[:mac]) rescue nil),
         :manufacturer => _manufacturer,
         :platform_name => _product_name,
