@@ -26,6 +26,7 @@ require 'optparse'
 require 'yaml'
 require 'ipaddr'
 require 'rethtool'
+require 'facter'
 
 unless Process.euid == 0
   puts "You must be root"
@@ -174,7 +175,7 @@ class NodeAgent
 
     begin
       (@os[:network][:interfaces] or {} rescue {}).each do |int, intinfo|
-        # Send info about physical interfaces only
+	# Send info about physical interfaces only
 	next if intinfo[:type] != "eth" and intinfo[:type] != 'bond'
 	next if intinfo[:flags].include?('SLAVE')
 
@@ -391,37 +392,18 @@ class NodeAgent
     info
   end
 
-  def _master_ip detailed_data
-    detailed_data.each do |k, v|
-      if k.to_s =~ /^interfaces$/
-        detailed_data[k].each do |i|
-          begin
-            net = IPAddr.new "#{i[:ip]}/#{i[:netmask]}"
-            return i[:ip] if net.include? @api_ip
-          rescue
-          end
-        end
-      end
-    end
-    nil
+  def _master_ip (master_int)
+    return Facter.value("ipaddress_#{master_int}")
   end
 
-  def _master_mac detailed_data
-    detailed_data.each do |k, v|
-      if k.to_s =~ /^interfaces$/
-        detailed_data[k].each do |i|
-          begin
-            net = IPAddr.new "#{i[:ip]}/#{i[:netmask]}"
-            return i[:mac] if net.include? @api_ip
-          rescue
-          end
-        end
-      end
-    end
-    nil
+  def _master_mac (master_int)
+    return Facter.value("macaddress_#{master_int}")
   end
 
   def _data
+    Facter.loadfacts
+    routing = `ip route get #{@api_ip}`
+    master_int = $1 if routing =~ /dev\s+(.*?)\s+/
     res = {
       :mac => (@os[:macaddress] rescue nil),
       :ip  => (@os[:ipaddress] rescue nil),
@@ -430,8 +412,8 @@ class NodeAgent
     begin
       detailed_data = _detailed
       res.merge!({
-        :ip  => ((_master_ip detailed_data or @os[:ipaddress]) rescue nil),
-        :mac  => ((_master_mac detailed_data or @os[:mac]) rescue nil),
+        :ip  => ((_master_ip master_int or @os[:ipaddress]) rescue nil),
+        :mac  => ((_master_mac master_int or @os[:mac]) rescue nil),
         :manufacturer => _manufacturer,
         :platform_name => _product_name,
         :meta => detailed_data
