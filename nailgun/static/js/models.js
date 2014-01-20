@@ -487,9 +487,6 @@ define(['utils', 'deepModel'], function(utils) {
         validate: function(attrs) {
             var errors = {};
             var fixedNetwork = attrs.networks.findWhere({name: 'fixed'});
-            var publicNetwork = attrs.networks.findWhere({name: 'public'});
-            var publicIp = _.compact(_.flatten(publicNetwork.get('ip_ranges')))[0];
-            var publicCidr = !utils.validateIP(publicIp) && !utils.validateNetmask(publicNetwork.get('netmask')) ? utils.composeCidr(publicIp, publicNetwork.get('netmask')) : null;
 
             // validate networks
             var networksErrors = {};
@@ -503,11 +500,7 @@ define(['utils', 'deepModel'], function(utils) {
                             _.each(network.get('ip_ranges'), function(range, i) {
                                 if (range[0] || range[1]) {
                                     var error = {index: i};
-                                    if (utils.validateIP(range[0]) || (network.get('name') == 'public' && publicCidr && !utils.validateIpCorrespondsToCIDR(publicCidr, range[0]))) {
-                                        error.start = $.t('cluster_page.network_tab.validation.invalid_ip_start');
-                                    } else if (utils.validateIP(range[1]) || (network.get('name') == 'public' && publicCidr && !utils.validateIpCorrespondsToCIDR(publicCidr, range[1]))) {
-                                        error.end = $.t('cluster_page.network_tab.validation.invalid_ip_end');
-                                    } else if (!utils.validateIPrange(range[0], range[1])) {
+                                    if (!utils.validateIPrange(range[0], range[1])) {
                                         error.start = $.t('cluster_page.network_tab.validation.invalid_ip_range');
                                     }
                                     if (error.start || error.end) {
@@ -538,8 +531,6 @@ define(['utils', 'deepModel'], function(utils) {
                     } else if (attr == 'gateway' && !_.isNull(network.get(attr))) {
                         if (utils.validateIP(network.get('gateway'))) {
                             networkErrors.gateway = $.t('cluster_page.network_tab.validation.invalid_gateway');
-                        } else if (network.get('name') == 'public' && publicCidr && !utils.validateIpCorrespondsToCIDR(publicCidr, network.get('gateway'))) {
-                            networkErrors.gateway = $.t('cluster_page.network_tab.validation.gateway_is_out_of_ip_range');
                         }
                     } else if (attr == 'amount') {
                         if (!utils.isNaturalNumber(network.get('amount'))) {
@@ -608,13 +599,7 @@ define(['utils', 'deepModel'], function(utils) {
                 var floatingIpRange = config.net04_ext.L3.floating;
                 if (utils.validateIP(floatingIpRange[0])) {
                     neutronErrors.floating_start = $.t('cluster_page.network_tab.validation.invalid_ip_start');
-                } else if (publicCidr && !utils.validateIpCorrespondsToCIDR(publicCidr, floatingIpRange[0])) {
-                    neutronErrors.floating_start = $.t('cluster_page.network_tab.validation.ip_start_is_out_of_ip_range');
-                } else if (utils.validateIP(floatingIpRange[1])) {
-                    neutronErrors.floating_end = $.t('cluster_page.network_tab.validation.invalid_ip_end');
-                } else if (publicCidr && !utils.validateIpCorrespondsToCIDR(publicCidr, floatingIpRange[1])) {
-                    neutronErrors.floating_end = $.t('cluster_page.network_tab.validation.ip_end_is_out_of_ip_range');
-                } else if (!utils.validateIPrange(floatingIpRange[0], floatingIpRange[1])) {
+                }else if (!utils.validateIPrange(floatingIpRange[0], floatingIpRange[1])) {
                     neutronErrors.floating_start = $.t('cluster_page.network_tab.validation.invalid_ip_range');
                 }
                 _.each(config.net04.L3.nameservers, function(nameserver, i) {

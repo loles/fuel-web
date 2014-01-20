@@ -153,7 +153,7 @@ function(utils, models, commonViews, dialogViews, networkTabTemplate, networkTem
             this.hasChanges = false;
             this.networkConfiguration = new models.NetworkConfiguration(this.model.get('networkConfiguration').toJSON(), {parse: true});
             this.networkConfiguration.get('networks').each(function(network) {
-                if (!_.contains(['fixed', 'private'], network.get('name'))) {
+                if (!_.contains(['private'], network.get('name'))) {
                     network.set({network_size: utils.calculateNetworkSize(network.get('cidr'))});
                 }
             });
@@ -344,7 +344,7 @@ function(utils, models, commonViews, dialogViews, networkTabTemplate, networkTem
                 netmask: $.trim(this.$('.netmask input').val()),
                 gateway: $.trim(this.$('.gateway input').val()) || null,
                 amount: fixedNetworkOnVlanManager ? Number(this.$('input[name=fixed-amount]').val()) : 1,
-                network_size: this.network.get('name') == 'fixed' ? Number(this.$('.network_size select').val()) : utils.calculateNetworkSize(this.$('.cidr input').val())
+                network_size:  utils.calculateNetworkSize(this.$('.cidr input').val())
             });
             this.updateFloatingVlanFromPublic();
             this.tab.updateNetworkConfiguration();
