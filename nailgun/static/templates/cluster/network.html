@@ -75,26 +75,6 @@
               <div class="error"><span class="help-inline"></span></div>
             </div>
           </label>
-        <% } else { %>
-          <% var vlan = network.get(attribute) %>
-          <% var isFloating = networkName == 'floating' ? 'disabled' : '' %>
-          <div class="networks-sub-title parameter-name" data-i18n="cluster_page.network_tab.network_parameters.use_vlan_tagging"></div>
-          <div class="range-row clearfix" style="height: 40px">
-            <label class="parameter-box clearfix setting">
-              <div class="parameter-control">
-                <div class="custom-tumbler">
-                  <input type="checkbox" class="use-vlan-tagging" <%= _.isNull(vlan) ? '' : 'checked' %> <%= isFloating || disabled %>>
-                  <!-- [if !IE |(gte IE 9)]> --><span>&nbsp;</span><!-- <![endif] -->
-                </div>
-              </div>
-            </label>
-            <label class="parameter-box clearfix setting">
-              <div class="parameter-control <%- attribute %>" <%= _.isNull(vlan) ? 'style="display:none"' : '' %>>
-                <input type="text" value="<%- _.isNull(vlan) ? '' : vlan %>" name="<%- networkName %>-<%- attribute %>" class="vlan-tagging" <%= isFloating || disabled %>>
-              </div>
-            </label>
-            <div class="error"><span class="help-inline"></span></div>
-          </div>
         <% } %>
       <% } else if (attribute == 'network_size') { %>
         <label class="parameter-box clearfix setting <%= hidden %> <%= vlanManager %>">

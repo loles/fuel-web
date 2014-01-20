@@ -738,5 +738,4 @@ class NetworkCheck(object):
         if self.net_provider == 'neutron':
             self.neutron_check_interface_mapping()
         else:
-            self.check_untagged_intersection()
             self.check_public_floating_assignment()
