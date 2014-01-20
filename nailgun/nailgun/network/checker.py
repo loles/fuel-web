@@ -725,9 +725,9 @@ class NetworkCheck(object):
             self.neutron_check_network_group_sizes()
             self.neutron_check_l3_addresses_not_match_subnet_and_broadcast()
         else:
-            self.check_public_floating_ranges_intersection()
+            #self.check_public_floating_ranges_intersection()
             self.check_network_address_spaces_intersection()
-            self.check_networks_amount()
+            #self.check_networks_amount()
             self.check_vlan_ids_range_and_intersection()
         self.check_network_classes_exclude_loopback()
         self.check_network_addresses_not_match_subnet_and_broadcast()
