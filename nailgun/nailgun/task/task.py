@@ -385,7 +385,7 @@ class CheckBeforeDeploymentTask(object):
         cls._check_disks(task)
         cls._check_ceph(task)
         cls._check_volumes(task)
-        cls._check_network(task)
+        #cls._check_network(task)
 
     @classmethod
     def _check_controllers_count(cls, task):
