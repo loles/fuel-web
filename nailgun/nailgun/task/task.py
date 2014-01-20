@@ -196,7 +196,8 @@ class DeletionTask(object):
                 nodes_to_delete.append({
                     'id': node.id,
                     'uid': node.id,
-                    'roles': node.roles
+                    'roles': node.roles,
+                    'ip': node.ip
                 })
 
                 if USE_FAKE:
@@ -290,6 +291,7 @@ class DeletionTask(object):
                     'username': settings.COBBLER_USER,
                     'password': settings.COBBLER_PASSWORD,
                 },
+                'master_ip' : settings.MASTER_IP,
                 'engine_nodes': engine_nodes
             }
         }

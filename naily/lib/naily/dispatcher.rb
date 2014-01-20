@@ -13,6 +13,7 @@
 #    under the License.
 
 require 'naily/reporter'
+require 'softlayer_api'
 
 module Naily
   class Dispatcher
@@ -140,7 +141,14 @@ module Naily
       if nodes.empty?
         Naily.logger.debug("#{task_uuid} Node list is empty")
       else
-        result = @orchestrator.remove_nodes(reporter, task_uuid, nodes)
+        nodes = mark_sl_nodes(nodes)
+        sl_nodes = nodes.map{|node| node if node['sl_id']}.compact
+        normal_nodes = nodes - sl_nodes
+        result = @orchestrator.remove_nodes(reporter, data['args']['task_uuid'], normal_nodes)
+        #TODO move it to astute code
+        Naily.logger.info("Removing SL nodes.")
+        sl_result = reload_sl_nodes(sl_nodes, {'master_ip' => data['args']['master_ip']})
+        result = merge_results(result, sl_result)
       end
 
       report_result(result, reporter)
@@ -152,6 +160,67 @@ module Naily
       result = {} unless result.instance_of?(Hash)
       status = {'status' => 'ready', 'progress' => 100}.merge(result)
       reporter.report(status)
+    end
+
+    def mark_sl_nodes(nodes)
+        if(Naily.config.sl_api_username and Naily.config.sl_api_key)
+            hs = SoftLayer::Service.new('SoftLayer_Hardware_Server',
+                                  :username => Naily.config.sl_api_username,
+                                  :api_key => Naily.config.sl_api_key)
+            nodes.each do |node|
+                Naily.logger.info("Searching for node with IP: " + node['ip'])
+                sl_node = hs.findByIpAddress(node['ip'])
+                if (sl_node)
+                    Naily.logger.info("Node found")
+                    node['sl_id'] = sl_node['id']
+                end
+            end
+        else
+            Naily.logger.info("No softlayer config.")
+        end
+        return nodes
+    end
+
+    def reload_sl_nodes(nodes, configuration)
+        hs = SoftLayer::Service.new('SoftLayer_Hardware_Server',
+                                  :username => Naily.config.sl_api_username,
+                                  :api_key => Naily.config.sl_api_key)
+        error_nodes = Astute::NodesHash.new
+        erased_nodes = Astute::NodesHash.new
+        custom_configuration = {
+               'customProvisionScriptUri'=> "https://#{configuration['master_ip']}/bootstrap.sh"
+               }
+        nodes.each do |node|
+            begin
+                hs.object_with_id(node['sl_id']).reloadOperatingSystem('FORCE', custom_configuration)
+                Naily.logger.info("Removing node #{node['sl_id']}")
+            rescue SoftLayer::SoftLayerAPIException => e
+                if(e.message != 'There is currently an outstanding transaction for this server')
+                    node['error'] = "SoftLayer API error: #{e.message}"
+                    error_nodes << node
+                    next
+                end
+            end
+            erased_nodes << node
+        end
+        answer = {'nodes' => erased_nodes.nodes.map(&:to_hash)}
+        unless error_nodes.empty?
+            answer.merge!({'error_nodes' => error_nodes.nodes.map(&:to_hash), 'status' => 'error'})
+        end
+        return answer
+    end
+
+    def merge_results(result, sl_result)
+        result['nodes'] += sl_result['nodes']
+        if(sl_result['status'] and sl_result['status'] == 'error')
+                if(result['error_nodes'])
+                    result['error_nodes'] += sl_result['error_nodes']
+                else
+                    result['error_nodes'] = sl_result['error_nodes']
+                end
+            result['status'] = 'error'
+        end
+        result
     end
   end
 end
