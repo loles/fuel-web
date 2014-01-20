@@ -441,16 +441,16 @@ class TaskHelper(object):
         """
         cls.update_slave_nodes_fqdn(nodes)
 
-        nodes_ids = [n.id for n in nodes]
-        netmanager = NetworkManager
-        if nodes_ids:
-            netmanager.assign_ips(nodes_ids, 'management')
-            netmanager.assign_ips(nodes_ids, 'public')
-            netmanager.assign_ips(nodes_ids, 'storage')
+        #nodes_ids = [n.id for n in nodes]
+        #netmanager = NetworkManager
+        #if nodes_ids:
+        #    netmanager.assign_ips(nodes_ids, 'management')
+        #    netmanager.assign_ips(nodes_ids, 'public')
+        #    netmanager.assign_ips(nodes_ids, 'storage')
 
-            for node in nodes:
-                netmanager.assign_admin_ips(
-                    node.id, len(node.meta.get('interfaces', [])))
+        #    for node in nodes:
+        #        netmanager.assign_admin_ips(
+        #            node.id, len(node.meta.get('interfaces', [])))
 
     @classmethod
     def raise_if_node_offline(cls, nodes):
