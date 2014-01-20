@@ -93,37 +93,17 @@ class ProvisioningSerializer(object):
     def serialize_interfaces(cls, node):
         interfaces = {}
         interfaces_extra = {}
-        net_manager = NetworkManager
-        admin_ips = net_manager.get_admin_ips_for_interfaces(node)
-        admin_netmask = net_manager.get_admin_network_group().netmask
-
         for interface in node.interfaces:
-            name = interface.name
-
-            interfaces[name] = {
-                'mac_address': interface.mac,
-                'static': '0',
-                'netmask': admin_netmask,
-                'ip_address': admin_ips[name]}
-
-            # interfaces_extra field in cobbler ks_meta
-            # means some extra data for network interfaces
-            # configuration. It is used by cobbler snippet.
-            # For example, cobbler interface model does not
-            # have 'peerdns' field, but we need this field
-            # to be configured. So we use interfaces_extra
-            # branch in order to set this unsupported field.
-            interfaces_extra[name] = {
-                'peerdns': 'no',
-                'onboot': 'no'}
-
-            # We want node to be able to PXE boot via any of its
-            # interfaces. That is why we add all discovered
-            # interfaces into cobbler system. But we want
-            # assignted fqdn to be resolved into one IP address
-            # because we don't completely support multiinterface
-            # configuration yet.
             if interface.mac == node.mac:
+                name = interface.name
+
+                interfaces[name] = {
+                    'mac_address': interface.mac,
+                    'static': '0',
+                    'ip_address': node.ip}
+                interfaces_extra[name] = {
+                    'peerdns': 'no',
+                    'onboot': 'yes'}
                 interfaces[name]['dns_name'] = node.fqdn
                 interfaces_extra[name]['onboot'] = 'yes'
 
