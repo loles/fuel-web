@@ -3,7 +3,7 @@
   <h3 data-i18n="cluster_page.network_tab.title"></h3>
   <% if (!loading || loading.state() != 'pending') { %>
     <% if (net_provider == 'nova_network') { %>
-      <% var managers = {'FlatDHCPManager': $.t('cluster_page.network_tab.flatdhcp_manager'), 'VlanManager': $.t('cluster_page.network_tab.vlan_manager') } %>
+      <% var managers = {'FlatDHCPManager': $.t('cluster_page.network_tab.flatdhcp_manager') } %>
       <div class="radio-checkbox-group net-manager">
         <% _.each(_.keys(managers), function(manager) { %>
           <div class="item-box">
