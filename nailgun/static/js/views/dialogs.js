@@ -390,7 +390,7 @@ function(require, utils, models, simpleMessageTemplate, createClusterWizardTempl
         },
         render: function() {
             this.$el.html(this.template());
-            this.$('input[name=hypervisor][value=qemu]').prop('checked', true);
+            this.$('input[name=hypervisor][value=kvm]').prop('checked', true);
             return this;
         }
     });

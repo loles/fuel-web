@@ -16,8 +16,12 @@
         <label class="parameter-box clearfix">
           <div class="parameter-control">
             <div class="custom-tumbler">
-              <input type="radio" name="manager" value="<%= manager %>" />
-              <!-- [if !IE |(gte IE 9)]> --><span>&nbsp;</span><!-- <![endif] -->
+              <% if (manager == 'nova-netowrk') { %>
+                <input type="radio" name="manager" value="<%= manager %>" />
+                <% } else { %>
+                <input type="radio" name="manager" value="<%= manager %>" disabled/>
+              <% } %>
+                <!-- [if !IE |(gte IE 9)]> --><span>&nbsp;</span><!-- <![endif] -->
             </div>
           </div>
           <div class="parameter-name"><%- descriptions[manager] %></div>

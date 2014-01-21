@@ -25,7 +25,11 @@
         <label class="parameter-box clearfix">
           <div class="parameter-control">
             <div class="custom-tumbler">
-              <input type="checkbox" name="<%= service.name %>" />
+              <% if (service.name == 'ceilometer') { %>
+                <input type="checkbox" name="<%= service.name %>" />
+              <% } else { %>
+                <input type="checkbox" name="<%= service.name %>"  disabled />
+              <% } %>
               <!-- [if !IE |(gte IE 9)]> --><span>&nbsp;</span><!-- <![endif] -->
             </div>
           </div>

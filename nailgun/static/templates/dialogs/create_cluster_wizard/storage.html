@@ -10,7 +10,11 @@
           <label class="parameter-box clearfix">
             <div class="parameter-control">
               <div class="custom-tumbler">
+              <% if (backend == 'default') { %>
                 <input type="radio" name="cinder" value="<%- backend %>" />
+              <% } else { %>
+                <input type="radio" name="cinder" value="<%- backend %>" disabled />
+              <% } %>
                 <!-- [if !IE |(gte IE 9)]> --><span>&nbsp;</span><!-- <![endif] -->
               </div>
             </div>
@@ -27,7 +31,11 @@
           <label class="parameter-box clearfix">
             <div class="parameter-control">
               <div class="custom-tumbler">
+              <% if (backend == 'default') { %>
                 <input type="radio" name="glance" value="<%- backend %>" />
+              <% } else { %>
+                <input type="radio" name="glance" value="<%- backend %>" disabled />
+              <% } %>
                 <!-- [if !IE |(gte IE 9)]> --><span>&nbsp;</span><!-- <![endif] -->
               </div>
             </div>
