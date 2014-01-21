@@ -54,6 +54,20 @@
                             "assign_vip": false
                         },
                         {
+                            "name": "management",
+                            "cidr": "192.168.0.0/24",
+                            "netmask": "255.255.255.0",
+                            "gateway": null,
+                            "ip_range": ["192.168.0.2", "192.168.0.254"],
+                            "vlan_start": null,
+                            "use_gateway": false,
+                            "notation": "cidr",
+                            "render_type": "cidr",
+                            "render_addr_mask": "internal",
+                            "assign_vip": true
+                        },
+
+                        {
                             "name": "fixed",
                             "cidr": "10.0.0.0/16",
                             "netmask": "255.255.0.0",

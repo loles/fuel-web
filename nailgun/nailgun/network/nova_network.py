@@ -115,7 +115,8 @@ class NovaNetworkManager(NetworkManager):
             ) if nic == node.admin_interface else []
 
         if nic == node.admin_interface:
-            return [cls.get_admin_network_group()]
+            #return [cls.get_admin_network_group()]
+            return []
         # return get_all_cluster_networkgroups() for the first non-admin NIC
         # and [] for other NICs
         for n in node.interfaces:

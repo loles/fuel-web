@@ -647,6 +647,7 @@ class NetworkManager(object):
 
     @classmethod
     def is_ip_belongs_to_admin_subnet(cls, ip_addr):
+        return True
         admin_cidr = cls.get_admin_network_group().cidr
         if ip_addr and IPAddress(ip_addr) in IPNetwork(admin_cidr):
             return True

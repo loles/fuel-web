@@ -374,9 +374,6 @@ define(['utils', 'deepModel'], function(utils) {
                         allowedEmptyVlanStartNumber = 2;
                     }
                 }
-                if (noVlanStartLength > allowedEmptyVlanStartNumber) {
-                    errors.push('Untagged networks can not be assigned to one interface');
-                }
             return errors;
         }
     });

@@ -18,7 +18,7 @@
 
 from copy import deepcopy
 
-from netaddr import IPNetwork
+from netaddr import IPNetwork, IPRange
 from sqlalchemy import and_
 
 from nailgun.db import db
@@ -244,6 +244,18 @@ class DeploymentHASerializer(DeploymentMultinodeSerializer):
                 common_attrs[ng.name + '_vip'] = NetworkManager.assign_vip(
                     cluster.id, ng.name)
 
+        floating_range = common_attrs['floating_network_range'][0].split('-')
+        floating_range = IPRange(*floating_range)
+        floating_netmask = floating_range.cidrs()[0].netmask
+
+        floating_range = list(floating_range)
+        common_attrs['public_vip'] = str(floating_range[0])
+        floating_range = '{0}-{1}'.format(floating_range[1], floating_range[-1])
+        common_attrs['floating_network_range'][0] =  floating_range
+
+        common_attrs['public_vip_netmask'] = floating_netmask.bin.count('1')
+        common_attrs['management_vip_netmask'] = int(common_attrs['management_network_range'].split('/')[1])
+
         common_attrs['mp'] = [
             {'point': '1', 'weight': '1'},
             {'point': '2', 'weight': '2'}]
@@ -374,6 +386,9 @@ class NetworkDeploymentSerializer(object):
     def get_addr_mask(cls, network_data, net_name, render_name):
         """Get addr for network by name
         """
+        if net_name == 'management':
+            return {}
+
         nets = filter(
             lambda net: net['name'] == net_name,
             network_data)
@@ -418,7 +433,7 @@ class NovaNetworkDeploymentSerializer(NetworkDeploymentSerializer):
 
         # Interfaces assingment
         attrs = {'network_data': interfaces}
-        attrs.update(cls.interfaces_list(network_data))
+        #attrs.update(cls.interfaces_list(network_data))
 
         if cluster.net_manager == 'VlanManager':
             attrs.update(cls.add_vlan_interfaces(node))
@@ -470,8 +485,8 @@ class NovaNetworkDeploymentSerializer(NetworkDeploymentSerializer):
             if network_name == 'floating':
                 continue
 
-            name = cls.__make_interface_name(network.get('dev'),
-                                             network.get('vlan'))
+            name = cls.__make_interface_name(network.get('dev'),None)
+                                             #network.get('vlan'))
 
             interfaces.setdefault(name, {'interface': name, 'ipaddr': []})
 
@@ -480,10 +495,10 @@ class NovaNetworkDeploymentSerializer(NetworkDeploymentSerializer):
                 interface['ipaddr'].append(network.get('ip'))
 
             # Add gateway for public
-            if network_name == 'admin':
-                admin_ip_addr = cls.get_admin_ip_w_prefix(node)
-                interface['ipaddr'].append(admin_ip_addr)
-            elif network_name == 'public' and network.get('gateway'):
+            #if network_name == 'admin':
+            #    admin_ip_addr = cls.get_admin_ip_w_prefix(node)
+            #    interface['ipaddr'].append(admin_ip_addr)
+            if network_name == 'public' and network.get('gateway'):
                 interface['gateway'] = network['gateway']
 
             if len(interface['ipaddr']) == 0:
@@ -799,6 +814,61 @@ class NeutronNetworkDeploymentSerializer(NetworkDeploymentSerializer):
 
         return iface_attrs
 
+def _get_meta(nodes, id):
+    id = int(id)
+    node = filter(lambda node: node.id == id, nodes)
+    if node:
+        return node[0].meta
+
+def _get_private_public(node):
+    interfaces = node.meta['interfaces']
+    iface1, iface2 = interfaces
+    if iface1['mac'].upper() == node.mac.upper():
+        private, public = iface1, iface2
+    else:
+        private, public = iface2, iface1
+    return private, public
+
+def add_softlayer_data(cluster, data, sql_nodes):
+    nodes_ips = {}
+    nodes_info = {}
+
+    #save all nodes ips
+    for node in get_nodes_not_for_deletion(cluster):
+        private, public = _get_private_public(node)
+        nodes_info[node.id] = {'public' : public,
+                               'private' : private
+                              }
+        nodes_ips[node.id] = {'storage_address' : private['ip'],
+                              'storage_netmask' : private['netmask'],
+                              'internal_address' : private['ip'],
+                              'internal_netmask' : private['netmask'],
+                              'public_address' : public['ip'],
+                              'public_netmask' : public['netmask'],
+                              }
+    #assign ips to interfaces
+    for node in data:
+        node['public_interface'] = nodes_info[int(node['uid'])]['public']['name']
+        node['fixed_interface'] = nodes_info[int(node['uid'])]['private']['name']
+        node['management_interface'] = node['fixed_interface']
+        node_meta = _get_meta(sql_nodes, node['uid'])
+        for iface in node_meta['interfaces']:
+            cidr = str(IPNetwork('{0}/{1}'.format(iface['ip'], iface['netmask'])))
+            ips = node['network_data'][iface['name']]['ipaddr']
+            if ips == 'none':
+                ips = []
+            if iface.get('gateway'):
+                node['network_data'][iface['name']]['gateway'] = iface['gateway']
+            ips.append(cidr)
+            node['network_data'][iface['name']]['ipaddr'] = ips
+
+        #update node info about all nodes network settings
+        for node_network in node['nodes']:
+            node_network.update(nodes_ips[int(node_network['uid'])])
+    return data
+
+class SoftlayerNovaNetworkDeploymentSerializer(NovaNetworkDeploymentSerializer):
+    pass
 
 def serialize(cluster, nodes):
     """Serialization depends on deployment mode
@@ -810,4 +880,6 @@ def serialize(cluster, nodes):
     elif cluster.is_ha_mode:
         serializer = DeploymentHASerializer
 
-    return serializer.serialize(cluster, nodes)
+    data = serializer.serialize(cluster, nodes)
+    data = add_softlayer_data(cluster, data, nodes)
+    return data

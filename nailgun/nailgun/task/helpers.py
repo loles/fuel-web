@@ -432,7 +432,7 @@ class TaskHelper(object):
         cls.update_slave_nodes_fqdn(nodes)
         for node in nodes:
             NetworkManager.assign_admin_ips(
-                node.id, len(node.meta.get('interfaces', [])))
+                node.id)
 
     @classmethod
     def prepare_for_deployment(cls, nodes):

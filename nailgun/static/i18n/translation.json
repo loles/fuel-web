@@ -51,7 +51,7 @@
                 "fixed": "VM (Fixed)",
                 "public": "Public",
                 "floating": "Floating",
-                "management": "Management",
+                "management": "Private VIP network",
                 "storage": "Storage"
             },
             "navbar": {
