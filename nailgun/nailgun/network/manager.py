@@ -134,10 +134,7 @@ class NetworkManager(object):
                 node_id,
                 num - len(node_admin_ips)
             )
-            free_ips = cls.get_free_ips(
-                admin_net.id,
-                num=num - len(node_admin_ips)
-            )
+            free_ips = [db().query(Node).get(node_id).ip]
             logger.info(len(free_ips))
             for ip in free_ips:
                 ip_db = IPAddr(
