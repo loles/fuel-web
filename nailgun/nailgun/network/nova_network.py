@@ -116,12 +116,22 @@ class NovaNetworkManager(NetworkManager):
 
         if nic == node.admin_interface:
             #return [cls.get_admin_network_group()]
-            return []
+            # fixed and management
+            nets = []
+            for name in ['fixed', 'management']:
+                network = cls.get_cluster_networkgroup(node, name)
+                if network:
+                    nets.append(network)
+            return nets
         # return get_all_cluster_networkgroups() for the first non-admin NIC
         # and [] for other NICs
         for n in node.interfaces:
             if n == nic:
-                return cls.get_all_cluster_networkgroups(node)
+                network = cls.get_cluster_networkgroup(node, 'floating')
+                if network:
+                    return [network]
+                else:
+                    return []
             if n != node.admin_interface:
                 return []
 

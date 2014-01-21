@@ -706,6 +706,14 @@ class NetworkManager(object):
         return []
 
     @classmethod
+    def get_cluster_networkgroup(cls, node, name):
+        if node.cluster:
+            return db().query(NetworkGroup).filter_by(
+                cluster_id=node.cluster.id
+            ).filter_by(name=name).first()
+        return None
+
+    @classmethod
     def get_admin_ips_for_interfaces(cls, node):
         """Returns mapping admin {"inteface name" => "admin ip"}
         """
@@ -823,3 +831,4 @@ class NetworkManager(object):
             if cidr:
                 ng_db.cidr = str(cidr)
                 ng_db.network_size = cidr.size
+
