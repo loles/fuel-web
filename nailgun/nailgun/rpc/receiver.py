@@ -342,6 +342,7 @@ class NailgunReceiver(object):
 
     @classmethod
     def _success_action(cls, task, status, progress):
+        from nailgun.orchestrator.deployment_serializers import get_private_public
         # check if all nodes are ready
         if any(map(lambda n: n.status == 'error',
                    task.cluster.nodes)):
@@ -360,12 +361,16 @@ class NailgunReceiver(object):
                     "getting it's IP addresses",
                     controller.id
                 )
-                public_net = filter(
-                    lambda n: n['name'] == 'public' and 'ip' in n,
-                    NetworkManager.get_node_networks(controller.id)
-                )
+                #public_net = filter(
+                #    lambda n: n['name'] == 'public' and 'ip' in n,
+                #    NetworkManager.get_node_networks(controller.id)
+                #)
+                try:
+                    private_net, public_net = get_private_public(controller)
+                except:
+                    private_net, public_net = None
                 if public_net:
-                    horizon_ip = public_net[0]['ip'].split('/')[0]
+                    horizon_ip = public_net['ip']
                     message = (
                         u"Deployment of environment '{0}' is done. "
                         "Access the OpenStack dashboard (Horizon) at "

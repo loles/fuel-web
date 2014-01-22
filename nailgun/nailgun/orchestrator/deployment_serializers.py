@@ -820,7 +820,7 @@ def _get_meta(nodes, id):
     if node:
         return node[0].meta
 
-def _get_private_public(node):
+def get_private_public(node):
     interfaces = node.meta['interfaces']
     iface1, iface2 = interfaces
     if iface1['mac'].upper() == node.mac.upper():
@@ -835,7 +835,7 @@ def add_softlayer_data(cluster, data, sql_nodes):
 
     #save all nodes ips
     for node in get_nodes_not_for_deletion(cluster):
-        private, public = _get_private_public(node)
+        private, public = get_private_public(node)
         nodes_info[node.id] = {'public' : public,
                                'private' : private
                               }
