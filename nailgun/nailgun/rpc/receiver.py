@@ -403,10 +403,10 @@ class NailgunReceiver(object):
             try:
                 message = (
                     u"Deployment of environment '{0}' is done. "
-                    "Access the OpenStack dashboard (Horizon) at {1}"
+                    "Access the OpenStack dashboard (Horizon) at http://{1}"
                 ).format(
                     task.cluster.name,
-                    NetworkManager.get_horizon_url(task.cluster.id)
+                    task.cache['args']['deployment_info'][0]['public_vip']
                 )
             except Exception as exc:
                 logger.error(": ".join([
