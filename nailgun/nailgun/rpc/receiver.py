@@ -369,6 +369,7 @@ class NailgunReceiver(object):
                     private_net, public_net = get_private_public(controller)
                 except:
                     private_net, public_net = None
+                    logger.warning("Could not find controller IP")
                 if public_net:
                     horizon_ip = public_net['ip']
                     message = (
