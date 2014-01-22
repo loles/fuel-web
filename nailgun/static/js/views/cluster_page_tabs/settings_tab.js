@@ -113,6 +113,14 @@ function(utils, models, commonViews, dialogViews, settingsTabTemplate, settingsG
                 if (this.model.get('net_provider') == 'nova_network') {
                     this.$('input[name=murano]').attr('disabled', true);
                 }
+                this.$('input[name=murano]').attr('disabled', true);
+                this.$('input[name=savanna]').attr('disabled', true);
+                this.$('input[name=volumes_ceph]').attr('disabled', true);
+                this.$('input[name=images_ceph]').attr('disabled', true);
+                this.$('input[name=ephemeral_ceph]').attr('disabled', true);
+                this.$('input[name=objects_ceph]').attr('disabled', true);
+                this.$('input[name=vlan_splinters]').attr('disabled', true);
+                this.$('input[name=vlan_splinters]').attr('disabled', true);
             }
             if (this.settings) {
                 this.composeBindings();
