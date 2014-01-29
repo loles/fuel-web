@@ -287,7 +287,7 @@ class NodeAgent
       # KVM virtio volumes has code 252 in CentOS, but 253 in Ubuntu
       # Please also update the device codes here
       # https://github.com/stackforge/fuel-astute/blob/master/mcagents/erase_node.rb#L81
-      if [3, 8, 104, 105, 106, 107, 108, 109, 110, 111, 202, 252, 253].include?(properties['MAJOR'].to_i) && removable =~ /^0$/
+      if [3, 8, 104, 105, 106, 107, 108, 109, 110, 111, 202, 252, 253].include?(properties['MAJOR'].to_i)
         # Exclude LVM volumes (in CentOS - 253, in Ubuntu - 252) using additional check
         @blocks << basename_dir unless properties['DEVPATH'].include?('virtual')
       end
