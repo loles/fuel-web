@@ -294,13 +294,16 @@ class DeploymentHASerializer(DeploymentMultinodeSerializer):
         for n in cls.by_role(nodes, 'storage'):
             n['priority'] = storage_prior
 
+        if not cls.by_role(nodes, 'primary-controller'):
+            cls.set_primary_controller(nodes)
         # Deploy primary-controller
         for n in cls.by_role(nodes, 'primary-controller'):
             n['priority'] = prior.next
 
-        # Then deploy other controllers one by one
+        priority_controllers = prior.next 
+        # Then deploy other controllers
         for n in cls.by_role(nodes, 'controller'):
-            n['priority'] = prior.next
+            n['priority'] = priority_controllers
 
         other_nodes_prior = prior.next
         for n in cls.not_roles(nodes, ['primary-swift-proxy',
