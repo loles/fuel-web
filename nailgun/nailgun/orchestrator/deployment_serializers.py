@@ -335,6 +335,13 @@ class NetworkDeploymentSerializer(object):
                         netw_data,
                         net.name,
                         net.meta.get('render_addr_mask')))
+            addresses.update({'storage_address' : node.ip,
+                              'storage_netmask' : node.netmask,
+                              'internal_address' : node.ip,
+                              'internal_netmask' : node.netmask,
+                              'public_address' : node.public_ip,
+                              'public_netmask' : node.public_netmask,
+                              })
 
             [n.update(addresses) for n in common['nodes']
              if n['uid'] == str(node.uid)]
@@ -440,6 +447,9 @@ class NovaNetworkDeploymentSerializer(NetworkDeploymentSerializer):
 
         if cluster.net_manager == 'VlanManager':
             attrs.update(cls.add_vlan_interfaces(node))
+        attrs['public_interface'] = node.public_iface
+        attrs['fixed_interface'] = node.private_iface
+        attrs['management_interface'] = attrs['fixed_interface']
 
         return attrs
 
@@ -508,7 +518,15 @@ class NovaNetworkDeploymentSerializer(NetworkDeploymentSerializer):
                 interface['ipaddr'] = 'none'
 
         interfaces['lo'] = {'interface': 'lo', 'ipaddr': ['127.0.0.1/8']}
-
+        public_cidr = str(IPNetwork('{0}/{1}'.format(node.public_ip, node.public_netmask)))
+        interfaces[node.public_iface] = { 'interface' : node.public_iface,
+                                          'ipaddr' : [public_cidr],
+                                          'gateway' : node.gateway
+                                          }
+        private_cidr = str(IPNetwork('{0}/{1}'.format(node.ip, node.netmask)))
+        interfaces[node.private_iface] = { 'interface' : node.private_iface,
+                                          'ipaddr' : [private_cidr],
+                                          }
         return interfaces
 
     @classmethod
@@ -823,56 +841,6 @@ def _get_meta(nodes, id):
     if node:
         return node[0].meta
 
-def get_private_public(node):
-    interfaces = node.meta['interfaces']
-    iface1, iface2 = interfaces
-    if iface1['mac'].upper() == node.mac.upper():
-        private, public = iface1, iface2
-    else:
-        private, public = iface2, iface1
-    return private, public
-
-def add_softlayer_data(cluster, data, sql_nodes):
-    nodes_ips = {}
-    nodes_info = {}
-
-    #save all nodes ips
-    for node in get_nodes_not_for_deletion(cluster):
-        private, public = get_private_public(node)
-        nodes_info[node.id] = {'public' : public,
-                               'private' : private
-                              }
-        nodes_ips[node.id] = {'storage_address' : private['ip'],
-                              'storage_netmask' : private['netmask'],
-                              'internal_address' : private['ip'],
-                              'internal_netmask' : private['netmask'],
-                              'public_address' : public['ip'],
-                              'public_netmask' : public['netmask'],
-                              }
-    #assign ips to interfaces
-    for node in data:
-        node['public_interface'] = nodes_info[int(node['uid'])]['public']['name']
-        node['fixed_interface'] = nodes_info[int(node['uid'])]['private']['name']
-        node['management_interface'] = node['fixed_interface']
-        node_meta = _get_meta(sql_nodes, node['uid'])
-        for iface in node_meta['interfaces']:
-            cidr = str(IPNetwork('{0}/{1}'.format(iface['ip'], iface['netmask'])))
-            ips = node['network_data'][iface['name']]['ipaddr']
-            if ips == 'none':
-                ips = []
-            if iface.get('gateway'):
-                node['network_data'][iface['name']]['gateway'] = iface['gateway']
-            ips.append(cidr)
-            node['network_data'][iface['name']]['ipaddr'] = ips
-
-        #update node info about all nodes network settings
-        for node_network in node['nodes']:
-            node_network.update(nodes_ips[int(node_network['uid'])])
-    return data
-
-class SoftlayerNovaNetworkDeploymentSerializer(NovaNetworkDeploymentSerializer):
-    pass
-
 def serialize(cluster, nodes):
     """Serialization depends on deployment mode
     """
@@ -884,5 +852,4 @@ def serialize(cluster, nodes):
         serializer = DeploymentHASerializer
 
     data = serializer.serialize(cluster, nodes)
-    data = add_softlayer_data(cluster, data, nodes)
     return data

@@ -342,7 +342,6 @@ class NailgunReceiver(object):
 
     @classmethod
     def _success_action(cls, task, status, progress):
-        from nailgun.orchestrator.deployment_serializers import get_private_public
         # check if all nodes are ready
         if any(map(lambda n: n.status == 'error',
                    task.cluster.nodes)):
@@ -365,30 +364,15 @@ class NailgunReceiver(object):
                 #    lambda n: n['name'] == 'public' and 'ip' in n,
                 #    NetworkManager.get_node_networks(controller.id)
                 #)
-                try:
-                    private_net, public_net = get_private_public(controller)
-                except:
-                    private_net, public_net = None
-                    logger.warning("Could not find controller IP")
-                if public_net:
-                    horizon_ip = public_net['ip']
-                    message = (
-                        u"Deployment of environment '{0}' is done. "
-                        "Access the OpenStack dashboard (Horizon) at "
-                        "http://{1}/ or via internal network at http://{2}/"
-                    ).format(
-                        task.cluster.name,
-                        horizon_ip,
-                        controller.ip
-                    )
-                else:
-                    message = (
-                        u"Deployment of environment '{0}' is done"
-                    ).format(task.cluster.name)
-                    logger.warning(
-                        u"Public ip for controller node "
-                        "not found in '{0}'".format(task.cluster.name)
-                    )
+                message = (
+                    u"Deployment of environment '{0}' is done. "
+                    "Access the OpenStack dashboard (Horizon) at "
+                    "http://{1}/ or via internal network at http://{2}/"
+                ).format(
+                    task.cluster.name,
+                    controller.public_ip,
+                    controller.ip
+                )
             else:
                 message = (
                     u"Deployment of environment"

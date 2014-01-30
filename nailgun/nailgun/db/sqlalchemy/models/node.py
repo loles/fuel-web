@@ -89,6 +89,14 @@ class Node(Base):
     meta = Column(JSON, default={})
     mac = Column(LowercaseString(17), nullable=False, unique=True)
     ip = Column(String(15))
+    netmask = Column(String(15))
+    private_iface = Column(String(15))
+
+    public_ip = Column(String(15))
+    public_netmask = Column(String(15))
+    public_iface = Column(String(15))
+    gateway = Column(String(15))
+
     fqdn = Column(String(255))
     manufacturer = Column(Unicode(50))
     platform_name = Column(String(150))

@@ -246,6 +246,8 @@ class NodeCollectionHandler(JSONHandler):
             else:
                 setattr(node, key, value)
 
+        self._add_softlayer_data(node)
+
         db().add(node)
         db().commit()
         node.attributes = NodeAttributes()
@@ -447,6 +449,22 @@ class NodeCollectionHandler(JSONHandler):
             joinedload('interfaces.assigned_networks')).\
             filter(Node.id.in_([n.id for n in nodes_updated])).all()
         return self.render(nodes)
+
+    def _add_softlayer_data(self, node):
+        interfaces = node.meta['interfaces']
+        iface1, iface2 = interfaces
+        if iface1['mac'].upper() == node.mac.upper():
+            private, public = iface1, iface2
+        else:
+            private, public = iface2, iface1
+
+        node.netmask = private['netmask']
+        node.private_iface = private['name']
+
+        node.public_ip = public['ip']
+        node.public_netmask = public['netmask']
+        node.public_iface = public['name']
+        node.gateway = public['gateway']
 
 
 class NodeNICsHandler(JSONHandler):
