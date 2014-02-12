@@ -418,8 +418,6 @@ class NodeAgent
       :ip  => (@os[:ipaddress] rescue nil),
       :os_platform => (@os[:platform] rescue nil)
     }
-    @logger.error(master_int)
-    @logger.error(master_ip)
     begin
       detailed_data = _detailed
       res.merge!({
