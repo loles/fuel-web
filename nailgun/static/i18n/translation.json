@@ -168,7 +168,7 @@
                             "pending_deletion": "Pending Deletion",
                             "ready": "Ready",
                             "installing_os": "Preparing __os__",
-                            "os_is_installed": "__os__ is installed",
+                            "os_is_installed": "__os__ is prepared",
                             "installing_openstack": "Installing OpenStack",
                             "discard_addition": "Discard Addition",
                             "discard_deletion": "Discard Deletion",
