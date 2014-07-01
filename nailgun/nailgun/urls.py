@@ -29,4 +29,11 @@ def urls():
     ]
     if web.config.debug:
         urls = ["/keystone", fake_keystone_urls.app()] + urls
+
+
+def public_urls():
+    urls = {}
+    for url, methods in api_urls.public_urls().iteritems():
+        urls['{0}{1}'.format('/api/v1', url)] = methods
+        urls['{0}{1}'.format('/api', url)] = methods
     return urls
