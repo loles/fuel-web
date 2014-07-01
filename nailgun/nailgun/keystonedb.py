@@ -14,7 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 import re
+import sys
 
 from nailgun.settings import settings
 from nailgun.urls import public_urls
@@ -59,3 +61,59 @@ class NailgunAuthProtocol(auth_token.AuthProtocol):
         if env['is_public_api']:
             return self.app(env, start_response)
         return super(NailgunAuthProtocol, self).__call__(env, start_response)
+
+
+def sync_keystone_db():
+    from oslo.config import cfg
+    orig_sys = sys.path[:]
+    orig_conf = cfg.CONF
+    cfg.CONF = cfg.ConfigOpts()
+
+    #for development enviorment when running in virtualenv
+    sys.path.append('/usr/lib/python2.7/dist-packages')
+    from keystone.cli import DbSync
+
+    #make sure that keystone conf file is available
+    keystone_conf_file = '/etc/keystone/keystone.conf'
+    if not os.path.exists(keystone_conf_file):
+        raise Exception('No {0} file'.format(keystone_conf_file))
+    cfg.CONF(default_config_files=[keystone_conf_file])
+
+    #create tables
+    DbSync.main()
+
+    #revert all
+    sys.path = orig_sys
+    cfg.CONF = orig_conf
+
+
+def drop_keystone_db():
+    from oslo.config import cfg
+    orig_sys = sys.path[:]
+    orig_conf = cfg.CONF
+    cfg.CONF = cfg.ConfigOpts()
+
+    #for development enviorment when running in virtualenv
+    sys.path.append('/usr/lib/python2.7/dist-packages')
+    from keystone.common.sql import core
+
+    #make sure that keystone conf file is available
+    keystone_conf_file = '/etc/keystone/keystone.conf'
+    if not os.path.exists(keystone_conf_file):
+        raise Exception('No {0} file'.format(keystone_conf_file))
+    cfg.CONF(default_config_files=[keystone_conf_file])
+
+    #init connection
+    base = core.Base()
+    conn = base.get_engine().connect()
+
+    #get all tables and delete them
+    query = "select * from pg_tables where schemaname='public';"
+    all_tables = conn.execute(query)
+    for table in all_tables.fetchall():
+        table_name = table[1]
+        conn.execute('drop table "{0}" cascade'.format(table_name))
+
+    #revert all
+    sys.path = orig_sys
+    cfg.CONF = orig_conf
