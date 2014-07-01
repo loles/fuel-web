@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import glob
 import logging
 import os
 import re
@@ -56,6 +57,8 @@ class DockerUpgrader(UpgradeEngine):
         self.new_release_containers = self.make_new_release_containers_list()
         self.pg_dump_path = os.path.join(
             self.working_directory, 'pg_dump_all.sql')
+        self.cobbler_config_path = self.config.cobbler_config_path.format(
+            working_directory=self.working_directory)
         self.upgrade_verifier = FuelUpgradeVerify(self.config)
 
     def upgrade(self):
@@ -98,6 +101,7 @@ class DockerUpgrader(UpgradeEngine):
         """Run before upgrade actions
         """
         self.save_db()
+        self.save_cobbler_configs()
 
     def save_db(self):
         """Saves postgresql database into the file
@@ -156,6 +160,44 @@ class DockerUpgrader(UpgradeEngine):
             '-- PostgreSQL database cluster dump complete']
 
         return utils.file_contains_lines(self.pg_dump_path, patterns)
+
+    def save_cobbler_configs(self):
+        """Copy config files from container
+        """
+        container_name = self.make_container_name(
+            'cobbler',
+            self.config.current_version['VERSION']['release'])
+
+        try:
+            utils.exec_cmd('docker cp {0}:{1} {2}'.format(
+                container_name,
+                self.config.cobbler_container_config_path,
+                self.cobbler_config_path))
+        except errors.ExecutedErrorNonZeroExitCode:
+            utils.rmtree(self.cobbler_config_path)
+            raise
+
+        self.verify_cobbler_configs()
+
+    def verify_cobbler_configs(self):
+        """Verify that cobbler config directory
+        contains valid data
+        """
+        configs = glob.glob(
+            self.config.cobbler_config_files_for_verifier.format(
+                cobbler_config_path=self.cobbler_config_path))
+
+        # NOTE(eli): cobbler config directory should
+        # contain at least one file (default.json)
+        if len(configs) < 1:
+            raise errors.WrongCobblerConfigsError(
+                u'Cannot find json files in directory {0}'.format(
+                    self.cobbler_config_path))
+
+        for config in configs:
+            if not utils.check_file_is_valid_json(config):
+                raise errors.WrongCobblerConfigsError(
+                    u'Invalid json config {0}'.format(config))
 
     def post_upgrade_actions(self):
         """Post upgrade actions
@@ -519,59 +561,6 @@ class DockerUpgrader(UpgradeEngine):
                 'to stop it again: {0}'.format(container_id))
             self.docker_client.stop(
                 container_id, self.config.docker['stop_container_timeout'])
-
-    def run(self, image_name, **kwargs):
-        """Run container from image, accepts the
-        same parameters as `docker run` command.
-        """
-        retries = [None]
-        retry_interval = kwargs.pop('retry_interval', 0)
-        retries_count = kwargs.pop('retries_count', 0)
-        if retry_interval and retries_count:
-            retries = [retry_interval] * retries_count
-
-        params = deepcopy(kwargs)
-        start_command_keys = [
-            'lxc_conf', 'port_bindings', 'binds',
-            'publish_all_ports', 'links', 'privileged',
-            'dns', 'volumes_from']
-
-        start_params = {}
-        for start_command_key in start_command_keys:
-            start_params[start_command_key] = params.pop(
-                start_command_key, None)
-
-        container = self.create_container(image_name, **params)
-        self.start_container(container, **start_params)
-
-        if not params.get('detach'):
-            for interval in retries:
-                logs = self.docker_client.logs(
-                    container['Id'],
-                    stream=True,
-                    stdout=True,
-                    stderr=True)
-
-                for log_line in logs:
-                    logger.debug(log_line.rstrip())
-
-                exit_code = self.docker_client.wait(container['Id'])
-                if exit_code == 0:
-                    break
-
-                if interval is not None:
-                    logger.warn(u'Failed to run container "{0}": {1}'.format(
-                        container['Id'], start_params))
-                    time.sleep(interval)
-                    self.docker_client.start(container['Id'], **start_params)
-            else:
-                if exit_code > 0:
-                    raise errors.DockerExecutedErrorNonZeroExitCode(
-                        u'Failed to execute migraion command "{0}" '
-                        'exit code {1} container id {2}'.format(
-                            params.get('command'), exit_code, container['Id']))
-
-        return container
 
     def start_container(self, container, **params):
         """Start containers

@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import StringIO
 import subprocess
 import urllib2
 
@@ -193,3 +194,93 @@ class TestUtils(BaseTestCase):
 
             self.assertFalse(
                 utils.file_contains_lines('/some/path', ['line 4', 'line3']))
+
+    @mock.patch('fuel_upgrade.utils.os.symlink')
+    @mock.patch('fuel_upgrade.utils.remove_if_exists')
+    def test_symlink(self, remove_if_exists_mock, symlink_mock):
+        from_path = '/tmp/from/path'
+        to_path = '/tmp/to/path'
+        utils.symlink(from_path, to_path)
+
+        symlink_mock.assert_called_once_with(from_path, to_path)
+        remove_if_exists_mock.assert_called_once_with(to_path)
+
+    @mock.patch('fuel_upgrade.utils.os.path.exists', return_value=True)
+    @mock.patch('fuel_upgrade.utils.os.remove')
+    def test_remove_if_exists(self, remove_mock, exists_mock):
+        path = '/tmp/some/path'
+        utils.remove_if_exists(path)
+        remove_mock.assert_called_once_with(path)
+        exists_mock.assert_called_once_with(path)
+
+    def test_load_fixture(self):
+        fixture = StringIO.StringIO('''
+        - &base
+          fields:
+            a: 1
+            b: 2
+            c: 3
+
+        - pk: 1
+          extend: *base
+          fields:
+            a: 13
+
+        - pk: 2
+          extend: *base
+          fields:
+            d: 42
+        ''')
+        setattr(fixture, 'name', 'some.yaml')
+
+        result = utils.load_fixture(fixture)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], {
+            'a': 13,
+            'b': 2,
+            'c': 3,
+        })
+        self.assertEqual(result[1], {
+            'a': 1,
+            'b': 2,
+            'c': 3,
+            'd': 42,
+        })
+
+    @mock.patch('fuel_upgrade.utils.os.path.exists', return_value=True)
+    @mock.patch('fuel_upgrade.utils.shutil.rmtree')
+    def test_rmtree(self, rm_mock, exists_mock):
+        path = '/some/file/path'
+        utils.rmtree(path)
+        rm_mock.assert_called_once_with(path, ignore_errors=True)
+        exists_mock.assert_called_once_with(path)
+
+    @mock.patch('fuel_upgrade.utils.os.path.exists', return_value=False)
+    @mock.patch('fuel_upgrade.utils.shutil.rmtree')
+    def test_rmtree_no_errors_if_file_does_not_exist(
+            self, rm_mock, exists_mock):
+
+        path = '/some/file/path'
+        utils.rmtree(path)
+
+        self.method_was_not_called(rm_mock)
+        exists_mock.assert_called_once_with(path)
+
+    def test_check_file_is_valid_json(self):
+        path = '/path/to/file.json'
+        with mock.patch(
+                '__builtin__.open',
+                self.mock_open('{"valid": "json"}')):
+            self.assertTrue(utils.check_file_is_valid_json(path))
+
+    def test_check_file_is_valid_json_returns_false(self):
+        path = '/path/to/file.json'
+        with mock.patch(
+                '__builtin__.open',
+                self.mock_open('{"invalid: "json"}')):
+            self.assertFalse(utils.check_file_is_valid_json(path))
+
+    def test_check_file_is_valid_json_false_if_problems_with_access(self):
+        path = '/path/to/file.json'
+        with mock.patch('__builtin__.open', side_effect=IOError()):
+            self.assertFalse(utils.check_file_is_valid_json(path))

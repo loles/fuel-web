@@ -26,6 +26,7 @@ import urllib2
 from copy import deepcopy
 
 from mako.template import Template
+import yaml
 
 from fuel_upgrade import errors
 
@@ -185,8 +186,7 @@ def wait_for_true(check, timeout=60, interval=0.5):
 
 
 def symlink(from_path, to_path):
-    """Create symlink, in remove old
-    if it was created
+    """Create symlink, and remove old if it exists
 
     :param from_path: symlink from
     :param to_path: symlink to
@@ -194,9 +194,18 @@ def symlink(from_path, to_path):
     logger.debug(
         u'Create symlink from "{0}" to "{1}"'.format(from_path, to_path))
 
-    if os.path.exists(to_path):
-        os.remove(to_path)
+    remove_if_exists(to_path)
     os.symlink(from_path, to_path)
+
+
+def remove_if_exists(path):
+    """Removes files if it exists
+
+    :param path: path to file for removal
+    """
+    if os.path.exists(path):
+        logger.debug(u'Remove file "{0}"'.format(path))
+        os.remove(path)
 
 
 def file_contains_lines(file_path, patterns):
@@ -241,6 +250,10 @@ def copy(from_path, to_path):
 
 def copytree(source, destination, overwrite=True):
     """Copy a given source directory to destination folder.
+
+    :param str source: copy from
+    :param str destination: copy to
+    :param bool overwrite: overwrite destination directory
     """
     logger.debug(u'Copy folder from %s to %s', source, destination)
 
@@ -250,5 +263,77 @@ def copytree(source, destination, overwrite=True):
 
 
 def rmtree(source, ignore_errors=True):
+    """Remove directory
+
+    :param str source: path to directory
+    :param bool ignore_errors: ignores error if True
+    """
     logger.debug(u'Removing %s', source)
-    shutil.rmtree(source, ignore_errors=ignore_errors)
+    if os.path.exists(source):
+        shutil.rmtree(source, ignore_errors=ignore_errors)
+
+
+def dict_merge(a, b):
+    '''recursively merges dict's. not just simple a['key'] = b['key'], if
+    both a and bhave a key who's value is a dict then dict_merge is called
+    on both values and the result stored in the returned dictionary.
+    '''
+    if not isinstance(b, dict):
+        return deepcopy(b)
+    result = deepcopy(a)
+    for k, v in b.iteritems():
+        if k in result and isinstance(result[k], dict):
+            result[k] = dict_merge(result[k], v)
+        else:
+            result[k] = deepcopy(v)
+    return result
+
+
+def load_fixture(fileobj, loader=None):
+    # a key that's used to mark some item as abstract
+    pk_key = 'pk'
+
+    # a key that's used to tell some item inherit data
+    # from an abstract one
+    inherit_key = 'extend'
+
+    # a list of supported loaders; the loader should be a func
+    # that receives a file-like object
+    supported_loaders = {
+        '.json': json.load,
+        '.yaml': yaml.load,
+        '.yml': yaml.load,
+    }
+
+    def extend(obj):
+        if inherit_key in obj:
+            obj[inherit_key] = extend(obj[inherit_key])
+        return dict_merge(obj.get(inherit_key, {}), obj)
+
+    # try to get loader from a given fixture if loader is None
+    if loader is None:
+        _, ext = os.path.splitext(fileobj.name)
+        loader = supported_loaders[ext]
+    fixture = loader(fileobj)
+
+    # render fixture
+    fixture = filter(lambda obj: obj.get(pk_key) is not None, fixture)
+    for i in range(0, len(fixture)):
+        fixture[i] = extend(fixture[i])
+        fixture[i].pop(inherit_key, None)
+
+    return [f['fields'] for f in fixture]
+
+
+def check_file_is_valid_json(path):
+    """Checks if file contains valid json
+
+    :param str path: path to json file
+    :returns: True if valid False if invalid
+    """
+    try:
+        json.load(open(path, 'r'))
+    except (ValueError, IOError):
+        return False
+
+    return True
