@@ -29,6 +29,7 @@ def urls():
     ]
     if web.config.debug:
         urls = ["/keystone", fake_keystone_urls.app()] + urls
+    return urls
 
 
 def public_urls():

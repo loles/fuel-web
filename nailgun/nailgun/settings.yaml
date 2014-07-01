@@ -9,7 +9,7 @@ AUTH:
   AUTHENTICATION_METHOD: "fake"
   # use only if AUTHENTICATION_METHOD is set to "keystone"
   KEYSTONE_ADMIN_TOKEN: "ADMIN"
-  IDENTITY_URI: "http://localhost:35357/"
+  IDENTITY_URI: "http://10.20.0.2:35357/v2.0"
 
 VERSION:
   release: "5.0"

@@ -33,8 +33,8 @@ class NailgunAuthProtocol(auth_token.AuthProtocol):
     """
     def __init__(self, app):
         self.public_api_routes = {}
-        conf = {'admin_token': settings.AUTH.KEYSTONE_ADMIN_TOKEN,
-                'identity_uri': settings.AUTH.IDENTITY_URI,
+        conf = {'admin_token': settings.AUTH['KEYSTONE_ADMIN_TOKEN'],
+                'identity_uri': settings.AUTH['IDENTITY_URI'],
                 }
         try:
             for route_tpl, methods in public_urls().iteritems():
