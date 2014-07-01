@@ -37,4 +37,5 @@ def public_urls():
     for url, methods in api_urls.public_urls().iteritems():
         urls['{0}{1}'.format('/api/v1', url)] = methods
         urls['{0}{1}'.format('/api', url)] = methods
+    urls[""] = ['GET']
     return urls

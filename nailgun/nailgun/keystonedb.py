@@ -33,9 +33,6 @@ class NailgunAuthProtocol(auth_token.AuthProtocol):
     """
     def __init__(self, app):
         self.public_api_routes = {}
-        conf = {'admin_token': settings.AUTH['KEYSTONE_ADMIN_TOKEN'],
-                'identity_uri': settings.AUTH['IDENTITY_URI'],
-                }
         try:
             for route_tpl, methods in public_urls().iteritems():
                 self.public_api_routes[re.compile(route_tpl)] = methods
@@ -45,7 +42,7 @@ class NailgunAuthProtocol(auth_token.AuthProtocol):
             auth_token.LOG.error(msg)
             raise Exception(error_msg=msg)
 
-        super(NailgunAuthProtocol, self).__init__(app, conf)
+        super(NailgunAuthProtocol, self).__init__(app, settings.AUTH)
 
     def __call__(self, env, start_response):
         path = env.get('PATH_INFO')
